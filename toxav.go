@@ -367,7 +367,7 @@ func (this *Tox) JoinAVGroupChat(friendNumber uint32, cookie string) (int, error
 	if err != nil {
 		return 0, errors.New("Invalid cookie:" + cookie)
 	}
-	var _fn = C.int32_t(friendNumber)
+	var _fn = C.uint32_t(friendNumber)
 	var _data = (*C.uint8_t)((unsafe.Pointer)(&data[0]))
 	var length = len(data)
 	var _length = C.uint16_t(length)

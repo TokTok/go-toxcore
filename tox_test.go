@@ -709,7 +709,7 @@ func TestGroup(t *testing.T) {
 		}, nil)
 
 		groupNameChangeTimes := 0
-		t2.t.CallbackGroupNameListChange(func(_ *Tox, groupNumber int, peerNumber int, change uint8, ud interface{}) {
+		t2.t.CallbackConferencePeerListChanged(func(_ *Tox, groupNumber uint32, ud interface{}) {
 			groupNameChangeTimes += 1
 		}, nil)
 

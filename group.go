@@ -11,7 +11,8 @@ void callbackConferenceMessageWrapperForC(Tox *, uint32_t, uint32_t, TOX_MESSAGE
 // void callbackConferenceActionWrapperForC(Tox*, uint32_t, uint32_t, uint8_t*, size_t, void*);
 
 void callbackConferenceTitleWrapperForC(Tox*, uint32_t, uint32_t, uint8_t*, size_t, void*);
-void callbackConferenceNameListChangeWrapperForC(Tox*, uint32_t, uint32_t, TOX_CONFERENCE_STATE_CHANGE, void*);
+void callbackConferencePeerNameWrapperForC(Tox*, uint32_t, uint32_t, uint8_t*, size_t, void*);
+void callbackConferencePeerListChangedWrapperForC(Tox*, uint32_t, void*);
 
 // fix nouse compile warning
 static inline __attribute__((__unused__)) void fixnousetoxgroup() {
@@ -33,7 +34,8 @@ type cb_conference_message_ftype func(this *Tox, groupNumber uint32, peerNumber 
 
 type cb_conference_action_ftype func(this *Tox, groupNumber uint32, peerNumber uint32, action string, userData interface{})
 type cb_conference_title_ftype func(this *Tox, groupNumber uint32, peerNumber uint32, title string, userData interface{})
-type cb_conference_namelist_change_ftype func(this *Tox, groupNumber uint32, peerNumber uint32, change uint8, userData interface{})
+type cb_conference_peer_name_ftype func(this *Tox, groupNumber uint32, peerNumber uint32, name string, userData interface{})
+type cb_conference_peer_list_changed_ftype func(this *Tox, groupNumber uint32, userData interface{})
 
 // tox_callback_conference_***
 
@@ -135,26 +137,49 @@ func (this *Tox) CallbackConferenceTitleAdd(cbfn cb_conference_title_ftype, user
 	C.tox_callback_conference_title(this.toxcore, (*C.tox_conference_title_cb)(C.callbackConferenceTitleWrapperForC))
 }
 
-//export callbackConferenceNameListChangeWrapperForC
-func callbackConferenceNameListChangeWrapperForC(m *C.Tox, a0 C.uint32_t, a1 C.uint32_t, a2 C.TOX_CONFERENCE_STATE_CHANGE, a3 unsafe.Pointer) {
+//export callbackConferencePeerNameWrapperForC
+func callbackConferencePeerNameWrapperForC(m *C.Tox, a0 C.uint32_t, a1 C.uint32_t, a2 *C.uint8_t, a3 C.size_t, a4 unsafe.Pointer) {
 	var this = cbUserDatas.get(m)
-	for cbfni, ud := range this.cb_conference_namelist_changes {
-		cbfn := *(*cb_conference_namelist_change_ftype)(cbfni)
-		this.putcbevts(func() { cbfn(this, uint32(a0), uint32(a1), uint8(a2), ud) })
+	for cbfni, ud := range this.cb_conference_peer_names {
+		cbfn := *(*cb_conference_peer_name_ftype)(cbfni)
+		peer_name := C.GoStringN((*C.char)((unsafe.Pointer)(a2)), C.int(a3))
+		this.putcbevts(func() { cbfn(this, uint32(a0), uint32(a1), peer_name, ud) })
 	}
 }
 
-func (this *Tox) CallbackConferenceNameListChange(cbfn cb_conference_namelist_change_ftype, userData interface{}) {
-	this.CallbackConferenceNameListChangeAdd(cbfn, userData)
+func (this *Tox) CallbackConferencePeerName(cbfn cb_conference_peer_name_ftype, userData interface{}) {
+	this.CallbackConferencePeerNameAdd(cbfn, userData)
 }
-func (this *Tox) CallbackConferenceNameListChangeAdd(cbfn cb_conference_namelist_change_ftype, userData interface{}) {
+func (this *Tox) CallbackConferencePeerNameAdd(cbfn cb_conference_peer_name_ftype, userData interface{}) {
 	cbfnp := (unsafe.Pointer)(&cbfn)
-	if _, ok := this.cb_conference_namelist_changes[cbfnp]; ok {
+	if _, ok := this.cb_conference_peer_names[cbfnp]; ok {
 		return
 	}
-	this.cb_conference_namelist_changes[cbfnp] = userData
+	this.cb_conference_peer_names[cbfnp] = userData
 
-	C.tox_callback_conference_namelist_change(this.toxcore, (*C.tox_conference_namelist_change_cb)(C.callbackConferenceNameListChangeWrapperForC))
+	C.tox_callback_conference_peer_name(this.toxcore, (*C.tox_conference_peer_name_cb)(C.callbackConferencePeerNameWrapperForC))
+}
+
+//export callbackConferencePeerListChangedWrapperForC
+func callbackConferencePeerListChangedWrapperForC(m *C.Tox, a0 C.uint32_t, a1 unsafe.Pointer) {
+	var this = cbUserDatas.get(m)
+	for cbfni, ud := range this.cb_conference_peer_list_changeds {
+		cbfn := *(*cb_conference_peer_list_changed_ftype)(cbfni)
+		this.putcbevts(func() { cbfn(this, uint32(a0), ud) })
+	}
+}
+
+func (this *Tox) CallbackConferencePeerListChanged(cbfn cb_conference_peer_list_changed_ftype, userData interface{}) {
+	this.CallbackConferencePeerListChangedAdd(cbfn, userData)
+}
+func (this *Tox) CallbackConferencePeerListChangedAdd(cbfn cb_conference_peer_list_changed_ftype, userData interface{}) {
+	cbfnp := (unsafe.Pointer)(&cbfn)
+	if _, ok := this.cb_conference_peer_list_changeds[cbfnp]; ok {
+		return
+	}
+	this.cb_conference_peer_list_changeds[cbfnp] = userData
+
+	C.tox_callback_conference_peer_list_changed(this.toxcore, (*C.tox_conference_peer_list_changed_cb)(C.callbackConferencePeerListChangedWrapperForC))
 }
 
 // methods tox_conference_*

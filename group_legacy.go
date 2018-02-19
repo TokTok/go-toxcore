@@ -60,16 +60,6 @@ func (this *Tox) CallbackGroupTitleAdd(cbfn cb_group_title_ftype, userData inter
 	this.CallbackConferenceTitleAdd(cbfn_, userData)
 }
 
-func (this *Tox) CallbackGroupNameListChange(cbfn cb_group_namelist_change_ftype, userData interface{}) {
-	this.CallbackGroupNameListChangeAdd(cbfn, userData)
-}
-func (this *Tox) CallbackGroupNameListChangeAdd(cbfn cb_group_namelist_change_ftype, userData interface{}) {
-	cbfn_ := func(this *Tox, groupNumber uint32, peerNumber uint32, change uint8, userData interface{}) {
-		cbfn(this, int(groupNumber), int(peerNumber), change, userData)
-	}
-	this.CallbackConferenceNameListChangeAdd(cbfn_, userData)
-}
-
 // methods
 func (this *Tox) AddGroupChat() (int, error) {
 	gn, err := this.ConferenceNew()

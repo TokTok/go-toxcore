@@ -1,5 +1,5 @@
 language: go
-compiler: clang
+compiler: gcc
 sudo: required
 
 addons:
@@ -12,14 +12,21 @@ addons:
     - libsodium-dev
     - libvpx-dev
 
-go:
-#- 1.4.x
-#- 1.5.x
-#- 1.6.x
-#- 1.7.x
-#- 1.8.x
-#- 1.9.x
-- master
+matrix:
+  include:
+# - go: 1.4.x
+#   if: type IN (push, api, cron)
+# - go: 1.5.x
+#   if: type IN (push, api, cron)
+# - go: 1.6.x
+#   if: type IN (push, api, cron)
+# - go: 1.7.x
+#   if: type IN (push, api, cron)
+# - go: 1.8.x
+#   if: type IN (push, api, cron)
+  - go: 1.9.x
+#   if: type IN (push, api, cron)
+# - go: master
 
 before_install:
 - go get github.com/mattn/goveralls
@@ -37,14 +44,17 @@ install:
 - sudo ldconfig > /dev/null
 # Install Go packages.
 - go get github.com/bitly/go-simplejson
-- go get github.com/go-clang/v3.8/clang
+- go get github.com/go-clang/v3.4/clang
 - go get github.com/kitech/godsts/maps/hashbidimap
 - go get github.com/kitech/godsts/maps/hashmap
 - go get github.com/kitech/godsts/sets/hashset
 - go get github.com/masatana/go-textdistance
 - go get github.com/sasha-s/go-deadlock
+- go get github.com/streamrail/concurrent-map
 - go get github.com/sysr-q/gopp/gopp
 - go get github.com/xrash/smetrics
+#- dpkg -L libclang-3.4-dev
+#- find /usr/lib -name "libclang*"
 
 script:
 - $GOPATH/bin/goveralls -service=travis-ci

@@ -93,11 +93,12 @@ type Tox struct {
 	cb_friend_lossless_packets   map[unsafe.Pointer]interface{}
 	cb_self_connection_statuss   map[unsafe.Pointer]interface{}
 
-	cb_conference_invites          map[unsafe.Pointer]interface{}
-	cb_conference_messages         map[unsafe.Pointer]interface{}
-	cb_conference_actions          map[unsafe.Pointer]interface{}
-	cb_conference_titles           map[unsafe.Pointer]interface{}
-	cb_conference_namelist_changes map[unsafe.Pointer]interface{}
+	cb_conference_invites            map[unsafe.Pointer]interface{}
+	cb_conference_messages           map[unsafe.Pointer]interface{}
+	cb_conference_actions            map[unsafe.Pointer]interface{}
+	cb_conference_titles             map[unsafe.Pointer]interface{}
+	cb_conference_peer_names         map[unsafe.Pointer]interface{}
+	cb_conference_peer_list_changeds map[unsafe.Pointer]interface{}
 
 	cb_file_recv_controls  map[unsafe.Pointer]interface{}
 	cb_file_recvs          map[unsafe.Pointer]interface{}
@@ -500,7 +501,8 @@ func NewTox(opt *ToxOptions) *Tox {
 	tox.cb_conference_messages = make(map[unsafe.Pointer]interface{})
 	tox.cb_conference_actions = make(map[unsafe.Pointer]interface{})
 	tox.cb_conference_titles = make(map[unsafe.Pointer]interface{})
-	tox.cb_conference_namelist_changes = make(map[unsafe.Pointer]interface{})
+	tox.cb_conference_peer_names = make(map[unsafe.Pointer]interface{})
+	tox.cb_conference_peer_list_changeds = make(map[unsafe.Pointer]interface{})
 
 	tox.cb_file_recv_controls = make(map[unsafe.Pointer]interface{})
 	tox.cb_file_recvs = make(map[unsafe.Pointer]interface{})
