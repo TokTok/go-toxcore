@@ -99,6 +99,20 @@ typedef struct {
 
     uint8_t title[TOX_MAX_NAME_LENGTH];
     uint8_t title_len;
+
+    uint32_t message_number;
+    uint16_t lossy_message_number;
+    uint16_t peer_number;
+
+    uint64_t last_sent_ping;
+
+    int number_joined; /* friendcon_id of person that invited us to the chat. (-1 means none) */
+
+    void *object;
+
+    void (*peer_on_join)(void *, uint32_t, uint32_t);
+    void (*peer_on_leave)(void *, uint32_t, uint32_t, void *);
+    void (*group_on_delete)(void *, uint32_t);
 } Group_c_Fake;
 
 typedef enum {

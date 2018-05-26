@@ -383,12 +383,15 @@ func (this *Tox) ConferenceGetNames(groupNumber uint32) []string {
 		return vec
 	}
 
-	for idx := uint32(0); idx < peerCount; idx++ {
+	for idx := uint32(0); idx < math.MaxUint32; idx++ {
 		pname, err := this.ConferencePeerGetName(groupNumber, idx)
 		if err != nil {
-			return vec[0:0]
+			break
 		}
 		vec[idx] = pname
+		if uint32(len(vec)) >= peerCount {
+			break
+		}
 	}
 
 	return vec
@@ -400,6 +403,7 @@ func (this *Tox) ConferenceGetPeerPubkeys(groupNumber uint32) []string {
 	for peerNumber := uint32(0); peerNumber < math.MaxUint32; peerNumber++ {
 		pubkey, err := this.ConferencePeerGetPublicKey(groupNumber, peerNumber)
 		if err != nil {
+			break
 		} else {
 			vec = append(vec, pubkey)
 		}
@@ -416,6 +420,7 @@ func (this *Tox) ConferenceGetPeers(groupNumber uint32) map[uint32]string {
 	for peerNumber := uint32(0); peerNumber < math.MaxUint32; peerNumber++ {
 		pubkey, err := this.ConferencePeerGetPublicKey(groupNumber, peerNumber)
 		if err != nil {
+			break
 		} else {
 			vec[peerNumber] = pubkey
 		}
