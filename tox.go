@@ -105,6 +105,8 @@ type Tox struct {
 	cb_file_recv_chunks    map[unsafe.Pointer]interface{}
 	cb_file_chunk_requests map[unsafe.Pointer]interface{}
 
+	cb_audios map[uint32]interface{} // groupNumber => cb_audio_ftype
+
 	cb_iterate_data              interface{}
 	cb_conference_message_setted bool
 
@@ -508,6 +510,8 @@ func NewTox(opt *ToxOptions) *Tox {
 	tox.cb_file_recvs = make(map[unsafe.Pointer]interface{})
 	tox.cb_file_recv_chunks = make(map[unsafe.Pointer]interface{})
 	tox.cb_file_chunk_requests = make(map[unsafe.Pointer]interface{})
+
+	tox.cb_audios = make(map[uint32]interface{})
 
 	return tox
 }

@@ -9,54 +9,18 @@ package tox
 
 void callbackCallWrapperForC(ToxAV *toxAV, uint32_t friend_number, bool audio_enabled,
                            bool video_enabled, void *user_data);
-typedef void (*cb_call_ftype)(ToxAV *toxAV, uint32_t friend_number, bool audio_enabled,
-                           bool video_enabled, void *user_data);
-static void cb_call_wrapper_for_go(ToxAV *m, cb_call_ftype fn, void *userdata)
-{ toxav_callback_call(m, fn, userdata); }
-
 void callbackCallStateWrapperForC(ToxAV *toxAV, uint32_t friendNumber, uint32_t state, void* user_data);
-typedef void (*cb_call_state_ftype)(ToxAV *toxAV, uint32_t friendNumber, uint32_t state, void *user_data);
-static void cb_call_state_wrapper_for_go(ToxAV *m, cb_call_state_ftype fn, void *userdata)
-{ toxav_callback_call_state(m, fn, userdata); }
-
 void callbackAudioBitRateWrapperForC(ToxAV *toxAV, uint32_t friendNumber, uint32_t audioBitRate, void* user_data);
-typedef void (*cb_audio_bit_rate_ftype)(ToxAV *toxAV, uint32_t friendNumber, uint32_t audioBitRate, void *user_data);
-static void cb_audio_bit_rate_wrapper_for_go(ToxAV *m, cb_audio_bit_rate_ftype fn, void *userdata)
-{ toxav_callback_audio_bit_rate(m, fn, userdata); }
-
 void callbackVideoBitRateWrapperForC(ToxAV *toxAV, uint32_t friendNumber, uint32_t videoBitRate, void* user_data);
-typedef void (*cb_video_bit_rate_ftype)(ToxAV *toxAV, uint32_t friendNumber, uint32_t videoBitRate, void *user_data);
-static void cb_video_bit_rate_wrapper_for_go(ToxAV *m, cb_video_bit_rate_ftype fn, void *userdata)
-{ toxav_callback_video_bit_rate(m, fn, userdata); }
-
 void callbackAudioReceiveFrameWrapperForC(ToxAV *toxAV, uint32_t friendNumber, int16_t *pcm, size_t sample_count, uint8_t channels, uint32_t sampling_rate, void* user_data);
-typedef void (*cb_audio_receive_frame_ftype)(ToxAV *toxAV, uint32_t friendNumber, const int16_t *pcm, size_t sample_count, uint8_t channels, uint32_t sampling_rate, void *user_data);
-static void cb_audio_receive_frame_wrapper_for_go(ToxAV *m, cb_audio_receive_frame_ftype fn, void *userdata)
-{ toxav_callback_audio_receive_frame(m, fn, userdata); }
-
 void callbackVideoReceiveFrameWrapperForC(ToxAV *toxAV, uint32_t friendNumber, uint16_t width,
         uint16_t height, uint8_t *y, uint8_t *u, uint8_t *v,
         int32_t ystride, int32_t ustride, int32_t vstride, void* user_data);
-typedef void (*cb_video_receive_frame_ftype)(ToxAV *toxAV, uint32_t friendNumber, uint16_t width,
-        uint16_t height, const uint8_t *y, const uint8_t *u, const uint8_t *v,
-        int32_t ystride, int32_t ustride, int32_t vstride, void *user_data);
-static void cb_video_receive_frame_wrapper_for_go(ToxAV *m, cb_video_receive_frame_ftype fn, void *userdata)
-{ toxav_callback_video_receive_frame(m, fn, userdata); }
+void callbackAudioForC(Tox *tox, uint32_t groupnumber, uint32_t peernumber, int16_t *pcm, unsigned int samples, uint8_t channels, uint32_t sample_rate, void *userdata);
 
 extern void i420_to_rgb(int width, int height, const uint8_t *y, const uint8_t *u, const uint8_t *v,
             int ystride, int ustride, int vstride, unsigned char *out);
 extern void rgb_to_i420(unsigned char* rgb, vpx_image_t *img);
-
-
-// fix nouse compile warning
-static inline __attribute__((__unused__)) void fixnousetoxav() {
-    cb_call_wrapper_for_go(NULL, NULL, NULL);
-    cb_call_state_wrapper_for_go(NULL, NULL, NULL);
-    cb_audio_bit_rate_wrapper_for_go(NULL, NULL, NULL);
-    cb_video_bit_rate_wrapper_for_go(NULL, NULL, NULL);
-    cb_audio_receive_frame_wrapper_for_go(NULL, NULL, NULL);
-    cb_video_receive_frame_wrapper_for_go(NULL, NULL, NULL);
-}
 
 */
 import "C"
@@ -72,6 +36,7 @@ type cb_audio_bit_rate_ftype func(this *ToxAV, friendNumber uint32, audioBitRate
 type cb_video_bit_rate_ftype func(this *ToxAV, friendNumber uint32, videoBitRate uint32, userData interface{})
 type cb_audio_receive_frame_ftype func(this *ToxAV, friendNumber uint32, pcm []byte, sampleCount int, channels int, samplingRate int, userData interface{})
 type cb_video_receive_frame_ftype func(this *ToxAV, friendNumber uint32, width uint16, height uint16, data []byte, userData interface{})
+type cb_audio_ftype func(this *Tox, groupNumber uint32, peerNumber uint32, pcm []int16, samples uint, channels uint8, sample_rate uint32, userData interface{})
 
 type ToxAV struct {
 	tox   *Tox
@@ -157,11 +122,8 @@ func (this *ToxAV) CallbackCall(cbfn cb_call_ftype, userData interface{}) {
 	this.cb_call = cbfn
 	this.cb_call_user_data = userData
 
-	var _cbfn = (C.cb_call_ftype)(C.callbackCallWrapperForC)
-	var _userData = unsafe.Pointer(this)
-	_userData = nil
-
-	C.cb_call_wrapper_for_go(this.toxav, _cbfn, _userData)
+	var _cbfn = (*C.toxav_call_cb)(C.callbackCallWrapperForC)
+	C.toxav_callback_call(this.toxav, _cbfn, nil)
 }
 
 func (this *ToxAV) Answer(friendNumber uint32, audioBitRate uint32, videoBitRate uint32) (bool, error) {
@@ -186,11 +148,8 @@ func (this *ToxAV) CallbackCallState(cbfn cb_call_state_ftype, userData interfac
 	this.cb_call_state = cbfn
 	this.cb_call_state_user_data = userData
 
-	var _cbfn = (C.cb_call_state_ftype)(C.callbackCallStateWrapperForC)
-	var _userData = unsafe.Pointer(this)
-	_userData = nil
-
-	C.cb_call_state_wrapper_for_go(this.toxav, _cbfn, _userData)
+	var _cbfn = (*C.toxav_call_state_cb)(C.callbackCallStateWrapperForC)
+	C.toxav_callback_call_state(this.toxav, _cbfn, nil)
 }
 
 func (this *ToxAV) CallControl(friendNumber uint32, control int) (bool, error) {
@@ -232,11 +191,8 @@ func (this *ToxAV) CallbackAudioBitRate(cbfn cb_audio_bit_rate_ftype, userData i
 	this.cb_audio_bit_rate = cbfn
 	this.cb_audio_bit_rate_user_data = userData
 
-	var _cbfn = (C.cb_audio_bit_rate_ftype)(C.callbackAudioBitRateWrapperForC)
-	var _userData = unsafe.Pointer(this)
-	_userData = nil
-
-	C.cb_audio_bit_rate_wrapper_for_go(this.toxav, _cbfn, _userData)
+	var _cbfn = (*C.toxav_audio_bit_rate_cb)(C.callbackAudioBitRateWrapperForC)
+	C.toxav_callback_audio_bit_rate(this.toxav, _cbfn, nil)
 }
 
 //export callbackVideoBitRateWrapperForC
@@ -251,11 +207,8 @@ func (this *ToxAV) CallbackVideoBitRate(cbfn cb_video_bit_rate_ftype, userData i
 	this.cb_video_bit_rate = cbfn
 	this.cb_video_bit_rate_user_data = userData
 
-	var _cbfn = (C.cb_video_bit_rate_ftype)(C.callbackVideoBitRateWrapperForC)
-	var _userData = unsafe.Pointer(this)
-	_userData = nil
-
-	C.cb_video_bit_rate_wrapper_for_go(this.toxav, _cbfn, _userData)
+	var _cbfn = (*C.toxav_video_bit_rate_cb)(C.callbackVideoBitRateWrapperForC)
+	C.toxav_callback_video_bit_rate(this.toxav, _cbfn, nil)
 }
 
 func (this *ToxAV) AudioSendFrame(friendNumber uint32, pcm []byte, sampleCount int, channels int, samplingRate int) (bool, error) {
@@ -309,11 +262,9 @@ func (this *ToxAV) CallbackAudioReceiveFrame(cbfn cb_audio_receive_frame_ftype, 
 	this.cb_audio_receive_frame = cbfn
 	this.cb_audio_receive_frame_user_data = userData
 
-	var _cbfn = (C.cb_audio_receive_frame_ftype)(C.callbackAudioReceiveFrameWrapperForC)
-	var _userData = unsafe.Pointer(this)
-	_userData = nil
+	var _cbfn = (*C.toxav_audio_receive_frame_cb)(C.callbackAudioReceiveFrameWrapperForC)
 
-	C.cb_audio_receive_frame_wrapper_for_go(this.toxav, _cbfn, _userData)
+	C.toxav_callback_audio_receive_frame(this.toxav, _cbfn, nil)
 }
 
 //export callbackVideoReceiveFrameWrapperForC
@@ -345,24 +296,32 @@ func (this *ToxAV) CallbackVideoReceiveFrame(cbfn cb_video_receive_frame_ftype, 
 	this.cb_video_receive_frame = cbfn
 	this.cb_video_receive_frame_user_data = userData
 
-	var _cbfn = (C.cb_video_receive_frame_ftype)(C.callbackVideoReceiveFrameWrapperForC)
-	var _userData = unsafe.Pointer(this)
-	_userData = nil
+	var _cbfn = (*C.toxav_video_receive_frame_cb)(C.callbackVideoReceiveFrameWrapperForC)
 
-	C.cb_video_receive_frame_wrapper_for_go(this.toxav, _cbfn, _userData)
+	C.toxav_callback_video_receive_frame(this.toxav, _cbfn, nil)
 }
 
-// TODO
-// toxav_add_av_groupchat
-// toxav_join_av_groupchat
-// toxav_group_send_audio
-
-func (this *Tox) AddAVGroupChat() int {
-	r := C.toxav_add_av_groupchat(this.toxcore, nil, nil)
-	return int(r)
+//export callbackAudioForC
+func callbackAudioForC(m *C.Tox, groupnumber C.uint32_t, peernumber C.uint32_t, pcm *C.int16_t, samples C.uint, channels C.uint8_t, sample_rate C.uint32_t, userdata unsafe.Pointer) {
+	var this = cbUserDatas.get(m)
+	if _cbfnx, ok := this.cb_audios[uint32(groupnumber)]; ok {
+		_cbfn := (_cbfnx).(cb_audio_ftype)
+		this.putcbevts(func() {
+			blen := C.size_t(samples) * C.size_t(channels) * 2
+			pcm_ := C.GoBytes(unsafe.Pointer(pcm), C.int(blen)) // TODO copy memory improve
+			pcm16_ := *((*[]int16)(unsafe.Pointer(&pcm_[0])))
+			_cbfn(this, uint32(groupnumber), uint32(peernumber), pcm16_, uint(samples), uint8(channels), uint32(sample_rate), nil)
+		})
+	}
 }
 
-func (this *Tox) JoinAVGroupChat(friendNumber uint32, cookie string) (int, error) {
+func (this *Tox) AddAVGroupChat(cbfn cb_audio_ftype) uint32 {
+	r := C.toxav_add_av_groupchat(this.toxcore, (*[0]byte)(unsafe.Pointer(C.callbackAudioForC)), nil)
+	this.cb_audios[uint32(r)] = cbfn
+	return uint32(r)
+}
+
+func (this *Tox) JoinAVGroupChat(friendNumber uint32, cookie string, cbfn cb_audio_ftype) (uint32, error) {
 	data, err := hex.DecodeString(cookie)
 	if err != nil {
 		return 0, errors.New("Invalid cookie:" + cookie)
@@ -373,13 +332,15 @@ func (this *Tox) JoinAVGroupChat(friendNumber uint32, cookie string) (int, error
 	var _length = C.uint16_t(length)
 
 	// TODO nil => real
-	r := C.toxav_join_av_groupchat(this.toxcore, _fn, _data, _length, nil, nil)
+	r := C.toxav_join_av_groupchat(this.toxcore, _fn, _data, _length,
+		(*[0]byte)(unsafe.Pointer(C.callbackAudioForC)), nil)
 	if int(r) == -1 {
-		return int(r), errors.New("Join av group chat failed")
+		return uint32(r), errors.New("Join av group chat failed")
 	}
+	this.cb_audios[uint32(r)] = cbfn
 
 	if this.hooks.ConferenceJoin != nil {
 		this.hooks.ConferenceJoin(friendNumber, uint32(r), cookie)
 	}
-	return int(r), nil
+	return uint32(r), nil
 }

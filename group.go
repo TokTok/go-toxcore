@@ -209,6 +209,9 @@ func (this *Tox) ConferenceDelete(groupNumber uint32) (int, error) {
 		this.unlock()
 		return 1, toxerrf("delete group chat failed:%d", cerr)
 	}
+	if _, ok := this.cb_audios[groupNumber]; ok {
+		delete(this.cb_audios, groupNumber)
+	}
 	this.unlock()
 
 	if this.hooks.ConferenceDelete != nil {
