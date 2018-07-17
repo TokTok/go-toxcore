@@ -7,11 +7,9 @@ The golang bindings for libtoxcore
 
 ### Installation
 
-    mkdir -p $(go env GOPATH)/github.com/kitech
-    ( cd $(go env GOPATH)/github.com/kitech; git clone https://github.com/TokTok/go-toxcore-c.git go-toxcore )
     # fetch libtoxcore if necessary
     # see https://github.com/irungentoo/toxcore/blob/master/INSTALL.md
-    go get github.com/kitech/go-toxcore
+    go get github.com/TokTok/go-toxcore-c
 
 
 ### Examples
