@@ -254,6 +254,8 @@ const ERR_CONFERENCE_INVITE_CONFERENCE_NOT_FOUND = int(C.TOX_ERR_CONFERENCE_INVI
 func init(){_ERR_CONFERENCE_INVITES[ERR_CONFERENCE_INVITE_CONFERENCE_NOT_FOUND] = "TE01: The conference number passed did not designate a valid conference."}
 const ERR_CONFERENCE_INVITE_FAIL_SEND = int(C.TOX_ERR_CONFERENCE_INVITE_FAIL_SEND) // 2
 func init(){_ERR_CONFERENCE_INVITES[ERR_CONFERENCE_INVITE_FAIL_SEND] = "TE02: The invite packet failed to send."}
+const ERR_CONFERENCE_INVITE_NO_CONNECTION = int(C.TOX_ERR_CONFERENCE_INVITE_NO_CONNECTION) // 3
+func init(){_ERR_CONFERENCE_INVITES[ERR_CONFERENCE_INVITE_NO_CONNECTION] = "TE03: The client is not connected to the conference."}
 
 var _ERR_CONFERENCE_JOINS = make(map[int]string)
 func init(){_ERR_CONFERENCE_JOINS[-1] = "TE-1: _ERR_CONFERENCE_JOIN"}
@@ -302,6 +304,15 @@ const ERR_CONFERENCE_GET_TYPE_OK = int(C.TOX_ERR_CONFERENCE_GET_TYPE_OK) // 0
 func init(){_ERR_CONFERENCE_GET_TYPES[ERR_CONFERENCE_GET_TYPE_OK] = "TE00: The function returned successfully."}
 const ERR_CONFERENCE_GET_TYPE_CONFERENCE_NOT_FOUND = int(C.TOX_ERR_CONFERENCE_GET_TYPE_CONFERENCE_NOT_FOUND) // 1
 func init(){_ERR_CONFERENCE_GET_TYPES[ERR_CONFERENCE_GET_TYPE_CONFERENCE_NOT_FOUND] = "TE01: The conference number passed did not designate a valid conference."}
+
+var _ERR_CONFERENCE_BY_IDS = make(map[int]string)
+func init(){_ERR_CONFERENCE_BY_IDS[-1] = "TE-1: _ERR_CONFERENCE_BY_ID"}
+const ERR_CONFERENCE_BY_ID_OK = int(C.TOX_ERR_CONFERENCE_BY_ID_OK) // 0
+func init(){_ERR_CONFERENCE_BY_IDS[ERR_CONFERENCE_BY_ID_OK] = "TE00: The function returned successfully."}
+const ERR_CONFERENCE_BY_ID_NULL = int(C.TOX_ERR_CONFERENCE_BY_ID_NULL) // 1
+func init(){_ERR_CONFERENCE_BY_IDS[ERR_CONFERENCE_BY_ID_NULL] = "TE01: One of the arguments to the function was NULL when it was not expected."}
+const ERR_CONFERENCE_BY_ID_NOT_FOUND = int(C.TOX_ERR_CONFERENCE_BY_ID_NOT_FOUND) // 2
+func init(){_ERR_CONFERENCE_BY_IDS[ERR_CONFERENCE_BY_ID_NOT_FOUND] = "TE02: No conference with the given id exists on the conference list."}
 
 var _ERR_CONFERENCE_BY_UIDS = make(map[int]string)
 func init(){_ERR_CONFERENCE_BY_UIDS[-1] = "TE-1: _ERR_CONFERENCE_BY_UID"}
