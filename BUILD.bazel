@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
-load("//tools:project.bzl", "project")
+load("//tools/project:build_defs.bzl", "project")
 
-project("go-toxcore-c")
+project()
 
 go_library(
     name = "go_default_library",
