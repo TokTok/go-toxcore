@@ -38,9 +38,9 @@ go_test(
     name = "go_default_test",
     srcs = [
         "group_intern_test.go",
-        "group_test.go",
         "tox_test.go",
     ],
+    args = ["-test.parallel 50"],
     embed = [":go_default_library"],
     importpath = "github.com/TokTok/go-toxcore-c",
 )

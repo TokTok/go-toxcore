@@ -245,38 +245,40 @@ type MiniTox struct {
 }
 
 func NewMiniTox() *MiniTox {
-	this := &MiniTox{}
-	this.t = NewTox(nil)
-	this.stopch = make(chan struct{}, 0)
-	return this
+	minitox := &MiniTox{}
+	opts := NewToxOptions()
+	opts.Local_discovery_enabled = false
+	minitox.t = NewTox(opts)
+	minitox.stopch = make(chan struct{}, 0)
+	return minitox
 }
 
-func (this *MiniTox) Iterate() {
+func (minitox *MiniTox) Iterate() {
 	tickch := time.Tick(100 * time.Millisecond)
 	for {
 		select {
 		case <-tickch:
-			this.t.Iterate()
-		case <-this.stopch:
+			minitox.t.Iterate()
+		case <-minitox.stopch:
 			return
 		}
 	}
 }
 
-func (this *MiniTox) bootstrap() {
+func (minitox *MiniTox) bootstrap() {
 	for idx := 0; idx < len(bsnodes)/3; idx++ {
 		port, err := strconv.Atoi(bsnodes[1+idx*3])
-		_, err = this.t.Bootstrap(bsnodes[0+idx*3], uint16(port), bsnodes[2+idx*3])
+		_, err = minitox.t.Bootstrap(bsnodes[0+idx*3], uint16(port), bsnodes[2+idx*3])
 		if err != nil {
 		}
-		_, err = this.t.AddTcpRelay(bsnodes[0+idx*3], uint16(port), bsnodes[2+idx*3])
+		_, err = minitox.t.AddTcpRelay(bsnodes[0+idx*3], uint16(port), bsnodes[2+idx*3])
 		if err != nil {
 		}
 	}
 }
 
-func (this *MiniTox) stop() {
-	this.stopch <- struct{}{}
+func (minitox *MiniTox) stop() {
+	minitox.stopch <- struct{}{}
 }
 
 var err error
@@ -305,9 +307,22 @@ func waitcond(cond func() bool, timeout int) {
 	}
 }
 
+func link(a *MiniTox, b *MiniTox) error {
+	port, err := a.t.SelfGetUdpPort()
+	if err != nil {
+		return err
+	}
+	if ok, err := b.t.Bootstrap("localhost", port, a.t.SelfGetDhtId()); !ok || err != nil {
+		return err
+	}
+	return nil
+}
+
 // login udp / login tcp
-func TestLogin(t *testing.T) {
-	t.Run("connect", func(t *testing.T) {
+func TestCommunication(t *testing.T) {
+	t.Run("Login/connect", func(t *testing.T) {
+		t.Parallel()
+
 		_t := NewMiniTox()
 		defer _t.t.Kill()
 		_t.bootstrap()
@@ -325,15 +340,18 @@ func TestLogin(t *testing.T) {
 			t.Error("maybe iterate not use")
 		}
 	})
-}
 
-func TestFriend(t *testing.T) {
+	t.Run("Friend/add friend", func(t *testing.T) {
+		t.Parallel()
 
-	t.Run("add friend", func(t *testing.T) {
 		t1 := NewMiniTox()
 		t2 := NewMiniTox()
 		defer t1.t.Kill()
 		defer t2.t.Kill()
+
+		if err := link(t1, t2); err != nil {
+			t.Error("must ok", err)
+		}
 
 		t1.t.CallbackFriendRequest(func(_ *Tox, friendId, msg string, d interface{}) {
 			_, err := t1.t.FriendAddNorequest(friendId)
@@ -348,7 +366,7 @@ func TestFriend(t *testing.T) {
 		defer t2.stop()
 
 		waitcond(func() bool {
-			return t1.t.SelfGetConnectionStatus() == 2 && t2.t.SelfGetConnectionStatus() == 2
+			return t1.t.SelfGetConnectionStatus() != CONNECTION_NONE && t2.t.SelfGetConnectionStatus() != CONNECTION_NONE
 		}, 100)
 		friendNumber, err := t2.t.FriendAdd(t1.t.SelfGetAddress(), "hoho")
 		if err != nil {
@@ -385,11 +403,17 @@ func TestFriend(t *testing.T) {
 		}
 	})
 
-	t.Run("friend status", func(t *testing.T) {
+	t.Run("Friend/friend status", func(t *testing.T) {
+		t.Parallel()
+
 		t1 := NewMiniTox()
 		t2 := NewMiniTox()
 		defer t1.t.Kill()
 		defer t2.t.Kill()
+
+		if err := link(t1, t2); err != nil {
+			t.Error("must ok", err)
+		}
 
 		t1.t.CallbackFriendRequest(func(_ *Tox, friendId, msg string, d interface{}) {
 			t1.t.FriendAddNorequest(friendId)
@@ -418,7 +442,7 @@ func TestFriend(t *testing.T) {
 		defer t2.stop()
 
 		waitcond(func() bool {
-			return t1.t.SelfGetConnectionStatus() == 2 && t2.t.SelfGetConnectionStatus() == 2
+			return t1.t.SelfGetConnectionStatus() != CONNECTION_NONE && t2.t.SelfGetConnectionStatus() != CONNECTION_NONE
 		}, 100)
 		friendNumber, _ := t2.t.FriendAdd(t1.t.SelfGetAddress(), "hoho")
 
@@ -482,11 +506,17 @@ func TestFriend(t *testing.T) {
 		}
 	})
 
-	t.Run("friend message", func(t *testing.T) {
+	t.Run("Friend/friend message", func(t *testing.T) {
+		t.Parallel()
+
 		t1 := NewMiniTox()
 		t2 := NewMiniTox()
 		defer t1.t.Kill()
 		defer t2.t.Kill()
+
+		if err := link(t1, t2); err != nil {
+			t.Error("must ok", err)
+		}
 
 		t1.t.CallbackFriendRequest(func(_ *Tox, friendId, msg string, d interface{}) {
 			t1.t.FriendAddNorequest(friendId)
@@ -502,7 +532,7 @@ func TestFriend(t *testing.T) {
 		defer t2.stop()
 
 		waitcond(func() bool {
-			return t1.t.SelfGetConnectionStatus() == 2 && t2.t.SelfGetConnectionStatus() == 2
+			return t1.t.SelfGetConnectionStatus() != CONNECTION_NONE && t2.t.SelfGetConnectionStatus() != CONNECTION_NONE
 		}, 100)
 		friendNumber, _ := t2.t.FriendAdd(t1.t.SelfGetAddress(), "hoho")
 		waitcond(func() bool {
@@ -528,11 +558,17 @@ func TestFriend(t *testing.T) {
 		}
 	})
 
-	t.Run("friend delete", func(t *testing.T) {
+	t.Run("Friend/friend delete", func(t *testing.T) {
+		t.Parallel()
+
 		t1 := NewMiniTox()
 		t2 := NewMiniTox()
 		defer t1.t.Kill()
 		defer t2.t.Kill()
+
+		if err := link(t1, t2); err != nil {
+			t.Error("must ok", err)
+		}
 
 		t1.t.CallbackFriendRequest(func(_ *Tox, friendId, msg string, d interface{}) {
 			t1.t.FriendAddNorequest(friendId)
@@ -544,7 +580,7 @@ func TestFriend(t *testing.T) {
 		defer t2.stop()
 
 		waitcond(func() bool {
-			return t1.t.SelfGetConnectionStatus() == 2 && t2.t.SelfGetConnectionStatus() == 2
+			return t1.t.SelfGetConnectionStatus() != CONNECTION_NONE && t2.t.SelfGetConnectionStatus() != CONNECTION_NONE
 		}, 100)
 		friendNumber, _ := t2.t.FriendAdd(t1.t.SelfGetAddress(), "hoho")
 		waitcond(func() bool {
@@ -562,23 +598,30 @@ func TestFriend(t *testing.T) {
 			t.Error("delete deleted friend should failed")
 		}
 	})
-}
 
-// go test -v -covermode count -run Group
-func TestGroup(t *testing.T) {
-	t.Run("add del", func(t *testing.T) {
+	t.Run("Group/add del", func(t *testing.T) {
+		t.Parallel()
+
 		t1 := NewMiniTox()
+		t2 := NewMiniTox()
 		defer t1.t.Kill()
+		defer t2.t.Kill()
+
+		if err := link(t1, t2); err != nil {
+			t.Error("must ok", err)
+		}
 
 		t1.t.CallbackFriendRequest(func(_ *Tox, friendId, msg string, d interface{}) {
 			t1.t.FriendAddNorequest(friendId)
 		}, nil)
 
 		go t1.Iterate()
+		go t2.Iterate()
 		defer t1.stop()
+		defer t2.stop()
 
 		waitcond(func() bool {
-			return t1.t.SelfGetConnectionStatus() == 2
+			return t1.t.SelfGetConnectionStatus() != CONNECTION_NONE
 		}, 100)
 		gn, err := t1.t.AddGroupChat()
 		if err != nil || gn != 0 {
@@ -684,11 +727,17 @@ func TestGroup(t *testing.T) {
 		}
 	})
 
-	t.Run("group invite", func(t *testing.T) {
+	t.Run("Group/group invite", func(t *testing.T) {
+		t.Parallel()
+
 		t1 := NewMiniTox()
 		t2 := NewMiniTox()
 		defer t1.t.Kill()
 		defer t2.t.Kill()
+
+		if err := link(t1, t2); err != nil {
+			t.Error("must ok", err)
+		}
 
 		t1.t.CallbackFriendRequest(func(_ *Tox, friendId, msg string, d interface{}) {
 			t1.t.FriendAddNorequest(friendId)
@@ -720,7 +769,7 @@ func TestGroup(t *testing.T) {
 		defer t2.stop()
 
 		waitcond(func() bool {
-			return t1.t.SelfGetConnectionStatus() == 2 && t2.t.SelfGetConnectionStatus() == 2
+			return t1.t.SelfGetConnectionStatus() != CONNECTION_NONE && t2.t.SelfGetConnectionStatus() != CONNECTION_NONE
 		}, 100)
 
 		t2.t.FriendAdd(t1.t.SelfGetAddress(), "autotests")
@@ -769,11 +818,17 @@ func TestGroup(t *testing.T) {
 		}
 	})
 
-	t.Run("group message", func(t *testing.T) {
+	t.Run("Group/group message", func(t *testing.T) {
+		t.Parallel()
+
 		t1 := NewMiniTox()
 		t2 := NewMiniTox()
 		defer t1.t.Kill()
 		defer t2.t.Kill()
+
+		if err := link(t1, t2); err != nil {
+			t.Error("must ok", err)
+		}
 
 		t1.t.CallbackFriendRequest(func(_ *Tox, friendId, msg string, d interface{}) {
 			t1.t.FriendAddNorequest(friendId)
@@ -803,7 +858,7 @@ func TestGroup(t *testing.T) {
 		defer t2.stop()
 
 		waitcond(func() bool {
-			return t1.t.SelfGetConnectionStatus() == 2 && t2.t.SelfGetConnectionStatus() == 2
+			return t1.t.SelfGetConnectionStatus() != CONNECTION_NONE && t2.t.SelfGetConnectionStatus() != CONNECTION_NONE
 		}, 100)
 
 		t2.t.FriendAdd(t1.t.SelfGetAddress(), "autotests")
@@ -847,9 +902,149 @@ func TestGroup(t *testing.T) {
 				recved_msg, recved_act, "foo123", "bar123")
 		}
 	})
+
+	t.Run("Group/issue 6", func(t *testing.T) {
+		t.Parallel()
+
+		opts := NewToxOptions()
+		opts.ThreadSafe = true
+		opts.Tcp_port = 34567
+		_t1 := NewTox(opts)
+		log.Println(_t1)
+		go func() {
+			for {
+				_t1.Iterate()
+				time.Sleep(100 * time.Millisecond)
+			}
+		}()
+
+		opts2 := NewToxOptions()
+		opts2.ThreadSafe = true
+		opts2.Tcp_port = 34568
+		_t2 := NewTox(opts2)
+		log.Println(_t2)
+		_t2.CallbackGroupInviteAdd(func(_ *Tox, friendNumber uint32, itype uint8, data string, userData interface{}) {
+			log.Println(friendNumber, itype)
+		}, nil)
+		go func() {
+			for {
+				_t2.Iterate()
+				time.Sleep(100 * time.Millisecond)
+			}
+		}()
+
+		waitcond(func() bool { return _t1.IsConnected() > 0 }, 100)
+		waitcond(func() bool { return _t2.IsConnected() > 0 }, 100)
+		log.Println("both connected")
+
+		gid := _t1.AddAVGroupChat(nil)
+		// ok, err := _t1.DelGroupChat(gid)
+		// log.Println(ok, err)
+		log.Println(gid)
+	})
+
+	t.Run("File/send", func(t *testing.T) {
+		t.Parallel()
+
+		t1 := NewMiniTox()
+		t2 := NewMiniTox()
+		defer t1.t.Kill()
+		defer t2.t.Kill()
+
+		if err := link(t1, t2); err != nil {
+			t.Error("must ok", err)
+		}
+
+		t1.t.CallbackFriendRequest(func(_ *Tox, friendId, msg string, d interface{}) {
+			t1.t.FriendAddNorequest(friendId)
+		}, nil)
+
+		t1.t.CallbackFileRecv(func(_ *Tox, friendNumber uint32, fileNumber uint32,
+			kind uint32, fileSize uint64, fileName string, d interface{}) {
+			log.Println(fileNumber, fileSize, fileName)
+			_, err := t1.t.FileSeek(friendNumber, fileNumber, 15)
+			if err != nil {
+				t.Error(err)
+			}
+			_, err = t1.t.FileControl(friendNumber, fileNumber, FILE_CONTROL_RESUME)
+			if err != nil {
+				t.Error(err)
+			}
+		}, nil)
+		recvData := ""
+		t1.t.CallbackFileRecvChunk(func(_ *Tox, friendNumber uint32, fileNumber uint32,
+			position uint64, data []byte, d interface{}) {
+			// log.Println(fileNumber, position, len(data))
+			recvData += string(data)
+		}, nil)
+		t1.t.CallbackFileRecvControl(func(_ *Tox, friendNumber uint32, fileNumber uint32,
+			control int, ud interface{}) {
+			// log.Println(fileNumber, control)
+		}, nil)
+
+		t2.t.CallbackFileChunkRequest(func(_ *Tox, friend_number uint32, file_number uint32,
+			position uint64, length int, d interface{}) {
+			// log.Println(file_number, position, length)
+			if length == 0 {
+				return
+			}
+			s := strings.Repeat("T", length)
+			_, err := t2.t.FileSendChunk(friend_number, file_number, position, []byte(s))
+			if err != nil {
+				t.Error(err)
+			}
+
+		}, nil)
+		sendRecvDone := false
+		t2.t.CallbackFileRecvControl(func(_ *Tox, friendNumber uint32, fileNumber uint32,
+			control int, ud interface{}) {
+			// log.Println(fileNumber, control)
+			if control == FILE_CONTROL_CANCEL {
+				sendRecvDone = true
+			}
+		}, nil)
+
+		go t1.Iterate()
+		go t2.Iterate()
+		defer t1.stop()
+		defer t2.stop()
+
+		waitcond(func() bool {
+			return t1.t.SelfGetConnectionStatus() != CONNECTION_NONE && t2.t.SelfGetConnectionStatus() != CONNECTION_NONE
+		}, 100)
+
+		t2.t.FriendAdd(t1.t.SelfGetAddress(), "autotests")
+		waitcond(func() bool {
+			return t1.t.SelfGetFriendListSize() == 1
+		}, 100)
+
+		fn, _ := t2.t.FriendByPublicKey(t1.t.SelfGetPublicKey())
+		// must wait friend online and can call InviteFriend
+		waitcond(func() bool {
+			st, _ := t2.t.FriendGetConnectionStatus(fn)
+			return st > CONNECTION_NONE
+		}, 100)
+
+		fh, err := t2.t.FileSend(fn, FILE_KIND_DATA, 12345, "123456", "testfile.txt")
+		if err != nil {
+			t.Error(err, fh)
+		}
+		fid, err := t2.t.FileGetFileId(fn, fh)
+		if len(fid) != FILE_ID_LENGTH*2 {
+			t.Error("file id length not match:", len(fid), FILE_ID_LENGTH*2)
+		}
+
+		waitcond(func() bool {
+			return len(recvData) > 0 && sendRecvDone
+		}, 10)
+		if len(recvData) != 12345-15 {
+			t.Error("recv size not match")
+		}
+
+		// select {}
+	})
 }
 
-// go test -v -run AV
 func TestAV(t *testing.T) {
 	t.Run("create", func(t *testing.T) {
 		if tv1, err := NewToxAV(nil); tv1 != nil {
@@ -861,100 +1056,6 @@ func TestAV(t *testing.T) {
 			t.Error(err, tv1)
 		}
 	})
-}
-
-// go test -v -run File
-func TestFile(t *testing.T) {
-	t1 := NewMiniTox()
-	t2 := NewMiniTox()
-
-	t1.t.CallbackFriendRequest(func(_ *Tox, friendId, msg string, d interface{}) {
-		t1.t.FriendAddNorequest(friendId)
-	}, nil)
-
-	t1.t.CallbackFileRecv(func(_ *Tox, friendNumber uint32, fileNumber uint32,
-		kind uint32, fileSize uint64, fileName string, d interface{}) {
-		log.Println(fileNumber, fileSize, fileName)
-		_, err := t1.t.FileSeek(friendNumber, fileNumber, 15)
-		if err != nil {
-			t.Error(err)
-		}
-		_, err = t1.t.FileControl(friendNumber, fileNumber, FILE_CONTROL_RESUME)
-		if err != nil {
-			t.Error(err)
-		}
-	}, nil)
-	recvData := ""
-	t1.t.CallbackFileRecvChunk(func(this *Tox, friendNumber uint32, fileNumber uint32,
-		position uint64, data []byte, d interface{}) {
-		// log.Println(fileNumber, position, len(data))
-		recvData += string(data)
-	}, nil)
-	t1.t.CallbackFileRecvControl(func(_ *Tox, friendNumber uint32, fileNumber uint32,
-		control int, ud interface{}) {
-		// log.Println(fileNumber, control)
-	}, nil)
-
-	t2.t.CallbackFileChunkRequest(func(_ *Tox, friend_number uint32, file_number uint32,
-		position uint64, length int, d interface{}) {
-		// log.Println(file_number, position, length)
-		if length == 0 {
-			return
-		}
-		s := strings.Repeat("T", length)
-		_, err := t2.t.FileSendChunk(friend_number, file_number, position, []byte(s))
-		if err != nil {
-			t.Error(err)
-		}
-
-	}, nil)
-	sendRecvDone := false
-	t2.t.CallbackFileRecvControl(func(_ *Tox, friendNumber uint32, fileNumber uint32,
-		control int, ud interface{}) {
-		// log.Println(fileNumber, control)
-		if control == FILE_CONTROL_CANCEL {
-			sendRecvDone = true
-		}
-	}, nil)
-
-	go t1.Iterate()
-	go t2.Iterate()
-	defer t1.stop()
-	defer t2.stop()
-
-	waitcond(func() bool {
-		return t1.t.SelfGetConnectionStatus() == 2 && t2.t.SelfGetConnectionStatus() == 2
-	}, 100)
-
-	t2.t.FriendAdd(t1.t.SelfGetAddress(), "autotests")
-	waitcond(func() bool {
-		return t1.t.SelfGetFriendListSize() == 1
-	}, 100)
-
-	fn, _ := t2.t.FriendByPublicKey(t1.t.SelfGetPublicKey())
-	// must wait friend online and can call InviteFriend
-	waitcond(func() bool {
-		st, _ := t2.t.FriendGetConnectionStatus(fn)
-		return st > CONNECTION_NONE
-	}, 100)
-
-	fh, err := t2.t.FileSend(fn, FILE_KIND_DATA, 12345, "123456", "testfile.txt")
-	if err != nil {
-		t.Error(err, fh)
-	}
-	fid, err := t2.t.FileGetFileId(fn, fh)
-	if len(fid) != FILE_ID_LENGTH*2 {
-		t.Error("file id length not match:", len(fid), FILE_ID_LENGTH*2)
-	}
-
-	waitcond(func() bool {
-		return len(recvData) > 0 && sendRecvDone
-	}, 10)
-	if len(recvData) != 12345-15 {
-		t.Error("recv size not match")
-	}
-
-	// select {}
 }
 
 // go test -v -run Covers
@@ -990,7 +1091,7 @@ func TestCovers(t *testing.T) {
 	}
 
 	t.Log("walking ast...")
-	v := &callVistor{t: t}
+	v := &callVisitor{t: t}
 	v.fns = make(map[string]bool)
 	ast.Walk(v, f)
 	// t.Log(v.fns)
@@ -1006,13 +1107,13 @@ func TestCovers(t *testing.T) {
 	t.Log("test covers:", mnum-len(notins), mnum)
 }
 
-type callVistor struct {
+type callVisitor struct {
 	t   *testing.T
 	fns map[string]bool
 }
 
-func (this *callVistor) Visit(node ast.Node) (w ast.Visitor) {
-	t := this.t
+func (v *callVisitor) Visit(node ast.Node) (w ast.Visitor) {
+	t := v.t
 	if false {
 		nt := reflect.TypeOf(node)
 		switch nt.Kind() {
@@ -1026,86 +1127,86 @@ func (this *callVistor) Visit(node ast.Node) (w ast.Visitor) {
 	switch ty := node.(type) {
 	case *ast.File:
 		for _, d := range ty.Decls {
-			this.Visit(d)
+			v.Visit(d)
 		}
 	case *ast.FuncDecl:
-		this.Visit(ty.Body)
+		v.Visit(ty.Body)
 	case *ast.GenDecl:
 		for _, d := range ty.Specs {
-			this.Visit(d)
+			v.Visit(d)
 		}
 	case *ast.BlockStmt:
 		for _, s := range ty.List {
-			this.Visit(s)
+			v.Visit(s)
 		}
 	case *ast.ExprStmt:
-		this.Visit(ty.X)
+		v.Visit(ty.X)
 	case *ast.CallExpr:
 		// t.Logf("%+v\n", ty)
-		this.Visit(ty.Fun)
+		v.Visit(ty.Fun)
 		for _, a := range ty.Args {
-			this.Visit(a)
+			v.Visit(a)
 		}
 	case *ast.FuncLit:
-		this.Visit(ty.Body)
+		v.Visit(ty.Body)
 	case *ast.IfStmt:
-		this.Visit(ty.Body)
-		this.Visit(ty.Cond)
+		v.Visit(ty.Body)
+		v.Visit(ty.Cond)
 		if ty.Init != nil {
-			this.Visit(ty.Init)
+			v.Visit(ty.Init)
 		}
 		if ty.Else != nil {
-			this.Visit(ty.Else)
+			v.Visit(ty.Else)
 		}
 	case *ast.AssignStmt:
 		for _, s := range ty.Rhs {
-			this.Visit(s)
+			v.Visit(s)
 		}
 	case *ast.ForStmt:
 		if ty.Cond != nil {
-			this.Visit(ty.Cond)
+			v.Visit(ty.Cond)
 		}
-		this.Visit(ty.Body)
+		v.Visit(ty.Body)
 		if ty.Init != nil {
-			this.Visit(ty.Init)
+			v.Visit(ty.Init)
 		}
 		if ty.Post != nil {
-			this.Visit(ty.Post)
+			v.Visit(ty.Post)
 		}
 	case *ast.ReturnStmt:
 		for _, s := range ty.Results {
-			this.Visit(s)
+			v.Visit(s)
 		}
 	case *ast.SwitchStmt:
 		if ty.Init != nil {
-			this.Visit(ty.Init)
+			v.Visit(ty.Init)
 		}
-		this.Visit(ty.Body)
+		v.Visit(ty.Body)
 	case *ast.GoStmt:
-		this.Visit(ty.Call)
+		v.Visit(ty.Call)
 	case *ast.SelectStmt:
-		this.Visit(ty.Body)
+		v.Visit(ty.Body)
 	case *ast.SelectorExpr:
 		if ty.Sel.IsExported() {
 			// t.Log(ty.Sel.String(), ty.Sel.Name, ty.X)
-			this.fns[ty.Sel.Name] = true
+			v.fns[ty.Sel.Name] = true
 		}
-		this.Visit(ty.X)
+		v.Visit(ty.X)
 	case *ast.BinaryExpr:
-		this.Visit(ty.X)
-		this.Visit(ty.Y)
+		v.Visit(ty.X)
+		v.Visit(ty.Y)
 	case *ast.UnaryExpr:
-		this.Visit(ty.X)
+		v.Visit(ty.X)
 	case *ast.ValueSpec:
-		for _, v := range ty.Values {
-			this.Visit(v)
+		for _, val := range ty.Values {
+			v.Visit(val)
 		}
 	case *ast.CaseClause:
 		for _, b := range ty.Body {
-			this.Visit(b)
+			v.Visit(b)
 		}
 		for _, l := range ty.List {
-			this.Visit(l)
+			v.Visit(l)
 		}
 	default:
 		if false {

@@ -955,6 +955,23 @@ func (this *Tox) SelfGetFriendList() []uint32 {
 
 // tox_callback_***
 
+func (this *Tox) SelfGetDhtId() string {
+	var addr [PUBLIC_KEY_SIZE]byte
+	var caddr = (*C.uint8_t)(unsafe.Pointer(&addr[0]))
+	C.tox_self_get_dht_id(this.toxcore, caddr)
+
+	return strings.ToUpper(hex.EncodeToString(addr[:]))
+}
+
+func (this *Tox) SelfGetUdpPort() (uint16, error) {
+	var cerr C.TOX_ERR_GET_PORT
+	r := C.tox_self_get_udp_port(this.toxcore, &cerr)
+	if cerr > 0 {
+		return 0, toxerr(cerr)
+	}
+	return uint16(r), nil
+}
+
 func (this *Tox) SelfGetNospam() uint32 {
 	r := C.tox_self_get_nospam(this.toxcore)
 	return uint32(r)
