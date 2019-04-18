@@ -73,7 +73,7 @@ func (this *Tox) WriteSavedata(fname string) error {
 			if err := os.Remove(fname); err != nil {
 				return err
 			}
-			if err := os.Rename(filepath.Dir(fname)+"/"+tfname, fname); err != nil {
+			if err := os.Rename(tfname, fname); err != nil {
 				return err
 			}
 		}
