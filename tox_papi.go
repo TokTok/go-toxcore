@@ -15,14 +15,15 @@ import (
 )
 
 type self_get_address_param struct {
-	gosz uint8
-	t    unsafe.Pointer
-	addr *byte
+	gosz   uintptr
+	t      unsafe.Pointer
+	retval bool
+	addr   *byte
 }
 
 func new_self_get_address_param() *self_get_address_param {
 	this := &self_get_address_param{}
-	this.gosz = uint8(unsafe.Sizeof(*this))
+	this.gosz = uintptr(unsafe.Sizeof(*this))
 	return this
 }
 
@@ -42,8 +43,9 @@ func (this *Tox) SelfGetAddress_p() string {
 }
 
 type friend_get_name_param struct {
-	gosz         uint8
+	gosz         uintptr
 	t            unsafe.Pointer
+	retval       bool
 	friendNumber uint32
 	name         *byte
 	error        int
@@ -52,7 +54,7 @@ type friend_get_name_param struct {
 
 func new_friend_get_name_param() *friend_get_name_param {
 	this := &friend_get_name_param{}
-	this.gosz = uint8(unsafe.Sizeof(*this))
+	this.gosz = uintptr(unsafe.Sizeof(*this))
 	return this
 }
 
@@ -63,15 +65,17 @@ func (this *Tox) FriendGetName_p(friendNumber uint32) (string, error) {
 	var name [MAX_NAME_LENGTH]byte
 	prm.name = &name[0]
 
-	r := C.tox_friend_get_name_p(C.uintptr_t(uintptr(unsafe.Pointer(prm))))
-	if !bool(r) {
+	C.tox_friend_get_name_p(C.uintptr_t(uintptr(unsafe.Pointer(prm))))
+	if !prm.retval {
+		// error
 	}
 	return string(name[:prm.namelen]), nil
 }
 
 type friend_get_public_key_param struct {
-	gosz         uint8
+	gosz         uintptr
 	t            unsafe.Pointer
+	retval       bool
 	friendNumber uint32
 	pubkey       *byte
 	error        int
@@ -79,7 +83,7 @@ type friend_get_public_key_param struct {
 
 func new_friend_get_public_key_param() *friend_get_public_key_param {
 	this := &friend_get_public_key_param{}
-	this.gosz = uint8(unsafe.Sizeof(*this))
+	this.gosz = uintptr(unsafe.Sizeof(*this))
 	return this
 }
 
@@ -90,8 +94,9 @@ func (this *Tox) FriendGetPublicKey_p(friendNumber uint32) (string, error) {
 	var pubkey [PUBLIC_KEY_SIZE]byte
 	prm.pubkey = &pubkey[0]
 
-	r := C.tox_friend_get_public_key_p(C.uintptr_t(uintptr(unsafe.Pointer(prm))))
-	if !bool(r) {
+	C.tox_friend_get_public_key_p(C.uintptr_t(uintptr(unsafe.Pointer(prm))))
+	if !prm.retval {
+		// error
 	}
 	return string(pubkey[:PUBLIC_KEY_SIZE]), nil
 }
